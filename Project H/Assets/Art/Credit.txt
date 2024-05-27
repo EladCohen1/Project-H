@@ -1,0 +1,9 @@
+art/rvros-adventurer "https://rvros.itch.io/animated-pixel-hero" Adventurer 1.5, Hand Combat, Bow
+art/freeknight "https://aamatniekss.itch.io/fantasy-knight-free-pixelart-animated-character"
+ui/fonts/ "https://managore.itch.io/m5x7" / Font
+art/freecutetileset "https://aamatniekss.itch.io/free-pixelart-tileset-cute-forest" CuteTileset
+art/henrysoftware-freepixelfood "https://henrysoftware.itch.io/pixel-food" Free Pixel Food
+art/kyrises-rpg-icon-pack "https://kyrise.itch.io/kyrises-free-16x16-rpg-icon-pack"
+art/luizmelo_Monsters_Creatures_Fantasy "https://luizmelo.itch.io/monsters-creatures-fantasy" Monsters
+audio/music/ "https://youfulca.itch.io/legendary-jrpg-battle-music-pack"
+Assets/Audio/SFX/RPG_Essentials_Free "https://leohpaz.itch.io/rpg-essentials-sfx-free" SFX
