@@ -8,41 +8,111 @@ public class PlayerController : MonoBehaviour
 {
     [Header("Stats")]
     public float walkSpeed = 5f;
-    public float runSpeed = 10f;
+    public float runSpeed = 8f;
+    public float CurrentMoveSpeed
+    {
+        get
+        {
+            if (IsMoving && IsModPressed)
+            {
+                return runSpeed;
+            }
+            else if (IsMoving)
+            {
+                return walkSpeed;
+            }
+            return 0;
+        }
+    }
+
+    [Header("Components")]
+    Rigidbody2D rb;
+    Animator anim;
 
     [Header("Inputs")]
     private Vector2 moveInput;
 
-    [Header("Status Bools")]
-    public bool IsMoving;
+    // Public status bools
+    public bool IsMoving { get { return _isMoving; } set { _isMoving = value; anim.SetBool(AnimationStrings.IsMoving, value); } }
+    public bool IsModPressed { get { return _isModPressed; } set { _isModPressed = value; anim.SetBool(AnimationStrings.IsModPressed, value); } }
 
-    [Header("Components")]
-    Rigidbody2D rb;
+    public bool IsFacingRight
+    {
+        get
+        {
+            return _isFacingRight;
+        }
+        private set
+        {
+            if (_isFacingRight != value)
+            {
+                transform.localScale *= new Vector2(-1, 1);
+                _isFacingRight = value;
+            }
+        }
+    }
+
+    [Header("Status Bools")]
+    // Private status bools
+    [SerializeField]
+    private bool _isMoving = false;
+    [SerializeField]
+    private bool _isModPressed = false;
+    [SerializeField]
+    private bool _isFacingRight = true;
 
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
-    }
-    // Start is called before the first frame update
-    void Start()
-    {
-
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-
+        anim = GetComponent<Animator>();
     }
 
     void FixedUpdate()
     {
-        rb.velocity = new Vector2(moveInput.x * walkSpeed, rb.velocity.y);
+        HandlePlayerRotation();
+        rb.velocity = new Vector2(GetXMovement(), rb.velocity.y);
     }
 
+    private float GetXMovement()
+    {
+        float movement = 0;
+        if (moveInput.x > 0)
+        {
+            movement = 1;
+        }
+        else if (moveInput.x < 0)
+        {
+            movement = -1;
+        }
+        return CurrentMoveSpeed * movement;
+    }
+
+    private void HandlePlayerRotation()
+    {
+        if (GetXMovement() > 0)
+        {
+            IsFacingRight = true;
+        }
+        else if (GetXMovement() < 0)
+        {
+            IsFacingRight = false;
+        }
+    }
     public void OnMove(InputAction.CallbackContext context)
     {
         moveInput = context.ReadValue<Vector2>();
-        IsMoving = moveInput != Vector2.zero;
+        IsMoving = moveInput.x != 0;
+    }
+
+    public void OnMod(InputAction.CallbackContext context)
+    {
+        if (context.started)
+        {
+            IsModPressed = true;
+        }
+        else if (context.canceled)
+        {
+            IsModPressed = false;
+        }
     }
 }
