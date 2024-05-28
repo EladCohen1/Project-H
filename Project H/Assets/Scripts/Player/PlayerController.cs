@@ -3,23 +3,30 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-[RequireComponent(typeof(Rigidbody2D))]
+[RequireComponent(typeof(Rigidbody2D), typeof(TouchingDirections))]
 public class PlayerController : MonoBehaviour
 {
     [Header("Stats")]
     public float walkSpeed = 5f;
     public float runSpeed = 8f;
-    public float CurrentMoveSpeed
+    public float airAcceleration = 0.1f;
+    public float maxAirSpeedByInputAcceleration = 2f;
+    public float jumpImpulse = 10f;
+    public float dashImpulse = 8f;
+    public float CurrentXMoveSpeed
     {
         get
         {
-            if (IsMoving && IsModPressed)
+            if (!touchingDirections.IsOnWall)
             {
-                return runSpeed;
-            }
-            else if (IsMoving)
-            {
-                return walkSpeed;
+                if (IsMoving && IsModPressed)
+                {
+                    return runSpeed;
+                }
+                else if (IsMoving)
+                {
+                    return walkSpeed;
+                }
             }
             return 0;
         }
@@ -28,6 +35,7 @@ public class PlayerController : MonoBehaviour
     [Header("Components")]
     Rigidbody2D rb;
     Animator anim;
+    TouchingDirections touchingDirections;
 
     [Header("Inputs")]
     private Vector2 moveInput;
@@ -35,6 +43,7 @@ public class PlayerController : MonoBehaviour
     // Public status bools
     public bool IsMoving { get { return _isMoving; } set { _isMoving = value; anim.SetBool(AnimationStrings.IsMoving, value); } }
     public bool IsModPressed { get { return _isModPressed; } set { _isModPressed = value; anim.SetBool(AnimationStrings.IsModPressed, value); } }
+    public bool IsCombat { get { return _isCombat; } set { _isCombat = value; anim.SetBool(AnimationStrings.IsCombat, value); } }
 
     public bool IsFacingRight
     {
@@ -60,20 +69,39 @@ public class PlayerController : MonoBehaviour
     private bool _isModPressed = false;
     [SerializeField]
     private bool _isFacingRight = true;
+    [SerializeField]
+    private bool _isCombat = false;
+    [SerializeField]
+    private bool _didDash = false;
+
 
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
+        touchingDirections = GetComponent<TouchingDirections>();
     }
 
     void FixedUpdate()
     {
         HandlePlayerRotation();
-        rb.velocity = new Vector2(GetXMovement(), rb.velocity.y);
+        anim.SetFloat(AnimationStrings.YVelocity, rb.velocity.y);
+        if (touchingDirections.IsGrounded)
+        {
+            rb.velocity = new Vector2(GetXMovementInputDirection() * CurrentXMoveSpeed, rb.velocity.y);
+            _didDash = false;
+        }
+        else
+        {
+            // if didn't reach max air velocity by input acceleration or trying to accelerate against current speed
+            if (Mathf.Abs(rb.velocity.x) < maxAirSpeedByInputAcceleration || (GetXMovementInputDirection() * rb.velocity.x < 0))
+            {
+                rb.velocity = new Vector2(rb.velocity.x + GetXMovementInputDirection() * airAcceleration, rb.velocity.y);
+            }
+        }
     }
 
-    private float GetXMovement()
+    private float GetXMovementInputDirection()
     {
         float movement = 0;
         if (moveInput.x > 0)
@@ -84,16 +112,16 @@ public class PlayerController : MonoBehaviour
         {
             movement = -1;
         }
-        return CurrentMoveSpeed * movement;
+        return movement;
     }
 
     private void HandlePlayerRotation()
     {
-        if (GetXMovement() > 0)
+        if (moveInput.x > 0)
         {
             IsFacingRight = true;
         }
-        else if (GetXMovement() < 0)
+        else if (moveInput.x < 0)
         {
             IsFacingRight = false;
         }
@@ -113,6 +141,23 @@ public class PlayerController : MonoBehaviour
         else if (context.canceled)
         {
             IsModPressed = false;
+        }
+    }
+    public void OnJump(InputAction.CallbackContext context)
+    {
+        if (context.started)
+        {
+            if (touchingDirections.IsGrounded)
+            {
+                anim.SetTrigger(AnimationStrings.Jump);
+                rb.velocity = new Vector2(rb.velocity.x, jumpImpulse);
+            }
+            else if (!_didDash)
+            {
+                float facingDirection = IsFacingRight ? 1 : -1;
+                rb.velocity = new Vector2(rb.velocity.x + dashImpulse * facingDirection, rb.velocity.y);
+                _didDash = true;
+            }
         }
     }
 }

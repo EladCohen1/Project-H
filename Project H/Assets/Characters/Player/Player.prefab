@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 763473305655768043}
   - component: {fileID: 6198556273925020853}
   - component: {fileID: 3450686339998728880}
+  - component: {fileID: 3030398476562452894}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -128,11 +129,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0c0c8166540a81241a399b6e40f4dcc3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  walkSpeed: 5
+  walkSpeed: 4
   runSpeed: 10
+  airAcceleration: 0.1
+  maxAirSpeedByInputAcceleration: 2
+  jumpImpulse: 8
+  dashImpulse: 10
   _isMoving: 0
   _isModPressed: 0
   _isFacingRight: 1
+  _isCombat: 0
+  _didDash: 0
 --- !u!114 &763473305655768043
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -238,6 +245,22 @@ MonoBehaviour:
         m_CallState: 2
     m_ActionId: 4793f73e-7156-415e-86c6-590ab438bdfd
     m_ActionName: Player/Mod[/Keyboard/leftShift]
+  - m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 8406470444250628679}
+        m_TargetAssemblyTypeName: PlayerController, Assembly-CSharp
+        m_MethodName: OnJump
+        m_Mode: 0
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+    m_ActionId: 415a0ed8-631f-4f8e-bfcb-4cbc4e19fa4a
+    m_ActionName: Player/Jump[/Keyboard/space]
   m_NeverAutoSwitchControlSchemes: 0
   m_DefaultControlScheme: 
   m_DefaultActionMap: Player
@@ -299,3 +322,35 @@ CapsuleCollider2D:
   m_Offset: {x: -0.0067572594, y: -0.22975999}
   m_Size: {x: 0.70576704, y: 1.7464422}
   m_Direction: 0
+--- !u!114 &3030398476562452894
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7900994465285454430}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 27adc719e8a41c84fbe9a207fc1e43e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  castFilter:
+    useTriggers: 0
+    useLayerMask: 0
+    useDepth: 0
+    useOutsideDepth: 0
+    useNormalAngle: 0
+    useOutsideNormalAngle: 0
+    layerMask:
+      serializedVersion: 2
+      m_Bits: 0
+    minDepth: 0
+    maxDepth: 0
+    minNormalAngle: 0
+    maxNormalAngle: 0
+  groundDistance: 0.05
+  wallDistance: 0.2
+  cellingDistance: 0.05
+  _isGrounded: 1
+  _isOnWall: 0
+  _isOnCelling: 0
