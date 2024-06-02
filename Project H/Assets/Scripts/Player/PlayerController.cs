@@ -17,6 +17,7 @@ public class PlayerController : MonoBehaviour
     {
         get
         {
+            // Stop movement to not go through a wall
             if (!touchingDirections.IsOnWall)
             {
                 if (IsMoving && IsModPressed)
@@ -127,15 +128,36 @@ public class PlayerController : MonoBehaviour
     }
     private void HandleGroundedMovement()
     {
-        rb.velocity = new Vector2(GetXMovementInputDirection() * CurrentXMoveSpeed, rb.velocity.y);
+        // Stop movement to prevent going through the ground
+        if (rb.velocity.y < 0)
+        {
+            rb.velocity = new Vector2(GetXMovementInputDirection() * CurrentXMoveSpeed, 0);
+        }
+        else
+        {
+            rb.velocity = new Vector2(GetXMovementInputDirection() * CurrentXMoveSpeed, rb.velocity.y);
+        }
     }
     private void HandleAirborneMovement()
     {
         // if didn't reach max air velocity by input acceleration or trying to accelerate against current speed
-        if ((Mathf.Abs(rb.velocity.x) < maxAirSpeedByInputAcceleration || (GetXMovementInputDirection() * rb.velocity.x < 0)) && !touchingDirections.IsOnWall)
+        if ((Mathf.Abs(rb.velocity.x) < maxAirSpeedByInputAcceleration || (GetXMovementInputDirection() * rb.velocity.x < 0)) &&
+        !touchingDirections.IsOnWall)
         {
-            rb.velocity = new Vector2(rb.velocity.x + GetXMovementInputDirection() * airAcceleration, rb.velocity.y);
+            // stop movement into a wall from behind
+            if (touchingDirections.IsOnWallFromBehind)
+            {
 
+            }
+            // stop upward movement when touching a celling
+            if (!touchingDirections.IsOnCelling)
+            {
+                rb.velocity = new Vector2(rb.velocity.x + GetXMovementInputDirection() * airAcceleration, rb.velocity.y);
+            }
+            else
+            {
+                rb.velocity = new Vector2(rb.velocity.x + GetXMovementInputDirection() * airAcceleration, 0);
+            }
         }
         else if (touchingDirections.IsOnWall)
         {

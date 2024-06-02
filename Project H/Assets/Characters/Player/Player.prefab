@@ -348,9 +348,13 @@ MonoBehaviour:
     maxDepth: 0
     minNormalAngle: 0
     maxNormalAngle: 0
-  groundDistance: 0.05
-  wallDistance: 0.4
-  cellingDistance: 0.05
+  groundLayerMask:
+    serializedVersion: 2
+    m_Bits: 8
+  groundDistance: 0.1
+  wallDistance: 0.3
+  cellingDistance: 0.1
   _isGrounded: 1
   _isOnWall: 0
+  _isOnWallFromBehind: 0
   _isOnCelling: 0

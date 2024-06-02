@@ -16,5 +16,6 @@ public class AnimationStrings
     public static string Jump = "Jump";
 
     public static string IsOnWall = "IsOnWall";
+    public static string IsOnWallFromBehind = "IsOnWallFromBehind";
     public static string IsOnCelling = "IsOnCelling";
 }
