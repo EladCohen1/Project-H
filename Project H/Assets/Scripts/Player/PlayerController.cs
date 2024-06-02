@@ -114,6 +114,7 @@ public class PlayerController : MonoBehaviour
         if (!touchingDirections.IsGrounded && touchingDirections.IsOnSlidableWall && rb.velocity.y < 0 && moveInput.y >= 0)
         {
             IsWallSliding = true;
+            _didDash = false;
         }
         else
         {
@@ -224,10 +225,10 @@ public class PlayerController : MonoBehaviour
             }
             else if (touchingDirections.IsOnSlidableWall) // wall jump
             {
-                float oppositeFacingDirection = IsFacingRight ? -1 : 1;
-                rb.velocity = new Vector2(wallSlidingXJumpImpulse * oppositeFacingDirection, jumpImpulse);
+                rb.velocity = new Vector2(wallSlidingXJumpImpulse * touchingDirections.WallXDirection * -1, jumpImpulse);
+                _didDash = false;
             }
-            else if (!_didDash) // dash
+            else if (!_didDash && !touchingDirections.IsOnWall) // dash
             {
                 float facingDirection = IsFacingRight ? 1 : -1;
                 rb.velocity = new Vector2(rb.velocity.x + dashImpulse * facingDirection, rb.velocity.y);
