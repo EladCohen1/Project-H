@@ -349,7 +349,7 @@ MonoBehaviour:
     minNormalAngle: 0
     maxNormalAngle: 0
   groundDistance: 0.05
-  wallDistance: 0.2
+  wallDistance: 0.4
   cellingDistance: 0.05
   _isGrounded: 1
   _isOnWall: 0

@@ -86,19 +86,7 @@ public class PlayerController : MonoBehaviour
     {
         HandlePlayerRotation();
         anim.SetFloat(AnimationStrings.YVelocity, rb.velocity.y);
-        if (touchingDirections.IsGrounded)
-        {
-            rb.velocity = new Vector2(GetXMovementInputDirection() * CurrentXMoveSpeed, rb.velocity.y);
-            _didDash = false;
-        }
-        else
-        {
-            // if didn't reach max air velocity by input acceleration or trying to accelerate against current speed
-            if (Mathf.Abs(rb.velocity.x) < maxAirSpeedByInputAcceleration || (GetXMovementInputDirection() * rb.velocity.x < 0))
-            {
-                rb.velocity = new Vector2(rb.velocity.x + GetXMovementInputDirection() * airAcceleration, rb.velocity.y);
-            }
-        }
+        HandleMovement();
     }
 
     private float GetXMovementInputDirection()
@@ -114,7 +102,6 @@ public class PlayerController : MonoBehaviour
         }
         return movement;
     }
-
     private void HandlePlayerRotation()
     {
         if (moveInput.x > 0)
@@ -126,12 +113,41 @@ public class PlayerController : MonoBehaviour
             IsFacingRight = false;
         }
     }
+    private void HandleMovement()
+    {
+        if (touchingDirections.IsGrounded)
+        {
+            HandleGroundedMovement();
+            _didDash = false;
+        }
+        else
+        {
+            HandleAirborneMovement();
+        }
+    }
+    private void HandleGroundedMovement()
+    {
+        rb.velocity = new Vector2(GetXMovementInputDirection() * CurrentXMoveSpeed, rb.velocity.y);
+    }
+    private void HandleAirborneMovement()
+    {
+        // if didn't reach max air velocity by input acceleration or trying to accelerate against current speed
+        if ((Mathf.Abs(rb.velocity.x) < maxAirSpeedByInputAcceleration || (GetXMovementInputDirection() * rb.velocity.x < 0)) && !touchingDirections.IsOnWall)
+        {
+            rb.velocity = new Vector2(rb.velocity.x + GetXMovementInputDirection() * airAcceleration, rb.velocity.y);
+
+        }
+        else if (touchingDirections.IsOnWall)
+        {
+            rb.velocity = new Vector2(0, rb.velocity.y);
+        }
+    }
+
     public void OnMove(InputAction.CallbackContext context)
     {
         moveInput = context.ReadValue<Vector2>();
         IsMoving = moveInput.x != 0;
     }
-
     public void OnMod(InputAction.CallbackContext context)
     {
         if (context.started)
