@@ -79,6 +79,15 @@ public class PlayerController : MonoBehaviour
     private bool _didDash = false;
     [SerializeField]
     private bool _isWallSliding = false;
+    [SerializeField]
+    private bool _canMove = true;
+    [SerializeField]
+    private bool _canWallHop = true;
+
+
+    [Header("Util Variables")]
+    private Coroutine wallSlideGraceCoroutine = null;
+    private Coroutine wallHopGraceCoroutine = null;
 
 
     void Awake()
@@ -90,9 +99,15 @@ public class PlayerController : MonoBehaviour
 
     void FixedUpdate()
     {
-        HandlePlayerRotation();
         anim.SetFloat(AnimationStrings.YVelocity, rb.velocity.y);
-        HandleMovement();
+        CheckWallSliding();
+        CheckWallHop();
+        HandleWallSliding();
+        if (_canMove)
+        {
+            HandlePlayerRotation();
+            HandleMovement();
+        }
     }
 
     // Utils
@@ -114,11 +129,46 @@ public class PlayerController : MonoBehaviour
         if (!touchingDirections.IsGrounded && touchingDirections.IsOnSlidableWall && rb.velocity.y < 0 && moveInput.y >= 0)
         {
             IsWallSliding = true;
+            _canMove = false;
             _didDash = false;
         }
         else
         {
             IsWallSliding = false;
+            _canMove = true;
+            IsMoving = moveInput.x != 0;
+        }
+
+        // Checking for detaching from the wall by holding the other direction
+        if (IsWallSliding)
+        {
+            if (moveInput.x * touchingDirections.slidingWallXDirection < 0)
+            {
+                if (wallSlideGraceCoroutine == null)
+                {
+                    wallSlideGraceCoroutine = StartCoroutine(WallSlidingGrace());
+                }
+            }
+            else
+            {
+                if (wallSlideGraceCoroutine != null)
+                {
+                    StopCoroutine(wallSlideGraceCoroutine);
+                }
+                wallSlideGraceCoroutine = null;
+            }
+        }
+    }
+    private void CheckWallHop()
+    {
+        if (touchingDirections.IsOnSlidableWall)
+        {
+            _canWallHop = true;
+            if (wallHopGraceCoroutine != null)
+            {
+                StopCoroutine(wallHopGraceCoroutine);
+            }
+            wallHopGraceCoroutine = StartCoroutine(WallHopGrace());
         }
     }
 
@@ -136,7 +186,6 @@ public class PlayerController : MonoBehaviour
     }
     private void HandleMovement()
     {
-        CheckWallSliding();
         if (touchingDirections.IsGrounded)
         {
             HandleGroundedMovement();
@@ -146,7 +195,6 @@ public class PlayerController : MonoBehaviour
         {
             HandleAirborneMovement();
             HandleAirWallCollision();
-            HandleWallSliding();
         }
     }
     private void HandleGroundedMovement()
@@ -166,7 +214,7 @@ public class PlayerController : MonoBehaviour
     {
         if (touchingDirections.IsOnWall)
         {
-            if (rb.velocity.x * transform.localScale.x > 0)
+            if (rb.velocity.x * touchingDirections.onWallXDirection > 0)
             {
                 rb.velocity = new Vector2(0, rb.velocity.y);
             }
@@ -177,7 +225,7 @@ public class PlayerController : MonoBehaviour
         }
         else if (touchingDirections.IsOnWallFromBehind) // allowing movement away from the wall but not into the wall
         {
-            if (rb.velocity.x * transform.localScale.x < 0)
+            if (rb.velocity.x * touchingDirections.onWallFromBehindXDirection > 0)
             {
                 rb.velocity = new Vector2(0, rb.velocity.y);
             }
@@ -198,10 +246,27 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    // Coroutines
+    IEnumerator WallSlidingGrace()
+    {
+        yield return new WaitForSeconds(0.25f);
+        IsFacingRight = !IsFacingRight;
+    }
+    IEnumerator WallHopGrace()
+    {
+        yield return new WaitForSeconds(0.2f);
+        _canWallHop = false;
+    }
+
+
+    // Events
     public void OnMove(InputAction.CallbackContext context)
     {
         moveInput = context.ReadValue<Vector2>();
-        IsMoving = moveInput.x != 0;
+        if (_canMove)
+        {
+            IsMoving = moveInput.x != 0;
+        }
     }
     public void OnMod(InputAction.CallbackContext context)
     {
@@ -223,9 +288,9 @@ public class PlayerController : MonoBehaviour
                 anim.SetTrigger(AnimationStrings.Jump);
                 rb.velocity = new Vector2(rb.velocity.x, jumpImpulse);
             }
-            else if (touchingDirections.IsOnSlidableWall) // wall jump
+            else if (_canWallHop) // wall jump
             {
-                rb.velocity = new Vector2(wallSlidingXJumpImpulse * touchingDirections.WallXDirection * -1, jumpImpulse);
+                rb.velocity = new Vector2(wallSlidingXJumpImpulse * touchingDirections.slidingWallXDirection * -1, jumpImpulse);
                 _didDash = false;
             }
             else if (!_didDash && !touchingDirections.IsOnWall) // dash

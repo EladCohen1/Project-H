@@ -80,7 +80,9 @@ public class TouchingDirections : MonoBehaviour
         }
     }
 
-    public float WallXDirection;
+    public float slidingWallXDirection;
+    public float onWallXDirection;
+    public float onWallFromBehindXDirection;
 
     [SerializeField]
     private bool _isGrounded = true;
@@ -110,13 +112,17 @@ public class TouchingDirections : MonoBehaviour
         IsOnWallFromBehind = touchingCol.Cast(forwardDirection * new Vector2(-1, 1), castFilter, wallHits, wallDistance) > 0;
         IsOnCelling = touchingCol.Cast(Vector2.up, castFilter, cellingHits, cellingDistance) > 0;
         IsOnSlidableWall = touchingCol.Cast(forwardDirection, SlideableWallsLayerCastFilter, slidableWallHits, wallDistance) > 0;
+        if (IsOnSlidableWall)
+        {
+            slidingWallXDirection = forwardDirection.x;
+        }
         if (IsOnWall)
         {
-            WallXDirection = forwardDirection.x;
+            onWallXDirection = forwardDirection.x;
         }
         if (IsOnWallFromBehind)
         {
-            WallXDirection = forwardDirection.x * -1;
+            onWallFromBehindXDirection = forwardDirection.x * -1;
         }
     }
 }
