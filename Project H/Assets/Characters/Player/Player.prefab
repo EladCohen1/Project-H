@@ -115,7 +115,7 @@ Rigidbody2D:
     m_Bits: 0
   m_Interpolate: 0
   m_SleepingMode: 1
-  m_CollisionDetection: 0
+  m_CollisionDetection: 1
   m_Constraints: 4
 --- !u!114 &8406470444250628679
 MonoBehaviour:
@@ -351,10 +351,10 @@ MonoBehaviour:
   groundLayerMask:
     serializedVersion: 2
     m_Bits: 8
-  groundDistance: 0.1
+  groundDistance: 0.05
   wallDistance: 0.3
-  cellingDistance: 0.1
-  _isGrounded: 1
+  cellingDistance: 0.05
+  _isGrounded: 0
   _isOnWall: 0
   _isOnWallFromBehind: 0
   _isOnCelling: 0

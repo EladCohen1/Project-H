@@ -22,11 +22,11 @@ public class PlayerController : MonoBehaviour
             {
                 if (IsMoving && IsModPressed)
                 {
-                    return runSpeed;
+                    return walkSpeed;
                 }
                 else if (IsMoving)
                 {
-                    return walkSpeed;
+                    return runSpeed;
                 }
             }
             return 0;
@@ -128,40 +128,30 @@ public class PlayerController : MonoBehaviour
     }
     private void HandleGroundedMovement()
     {
-        // Stop movement to prevent going through the ground
-        if (rb.velocity.y < 0)
-        {
-            rb.velocity = new Vector2(GetXMovementInputDirection() * CurrentXMoveSpeed, 0);
-        }
-        else
-        {
-            rb.velocity = new Vector2(GetXMovementInputDirection() * CurrentXMoveSpeed, rb.velocity.y);
-        }
+        rb.velocity = new Vector2(GetXMovementInputDirection() * CurrentXMoveSpeed, rb.velocity.y);
     }
     private void HandleAirborneMovement()
     {
-        // if didn't reach max air velocity by input acceleration or trying to accelerate against current speed
+        // if didn't reach max air velocity by input acceleration or trying to accelerate against current speed or is on wall
         if ((Mathf.Abs(rb.velocity.x) < maxAirSpeedByInputAcceleration || (GetXMovementInputDirection() * rb.velocity.x < 0)) &&
-        !touchingDirections.IsOnWall)
+        !(touchingDirections.IsOnWall || touchingDirections.IsOnWallFromBehind))
         {
-            // stop movement into a wall from behind
-            if (touchingDirections.IsOnWallFromBehind)
-            {
-
-            }
-            // stop upward movement when touching a celling
-            if (!touchingDirections.IsOnCelling)
-            {
-                rb.velocity = new Vector2(rb.velocity.x + GetXMovementInputDirection() * airAcceleration, rb.velocity.y);
-            }
-            else
-            {
-                rb.velocity = new Vector2(rb.velocity.x + GetXMovementInputDirection() * airAcceleration, 0);
-            }
+            rb.velocity = new Vector2(rb.velocity.x + GetXMovementInputDirection() * airAcceleration, rb.velocity.y);
         }
         else if (touchingDirections.IsOnWall)
         {
             rb.velocity = new Vector2(0, rb.velocity.y);
+        }
+        else if (touchingDirections.IsOnWallFromBehind)
+        {
+            if (rb.velocity.x * transform.localScale.x < 0)
+            {
+                rb.velocity = new Vector2(0, rb.velocity.y);
+            }
+            else
+            {
+                rb.velocity = new Vector2(rb.velocity.x + GetXMovementInputDirection() * airAcceleration, rb.velocity.y);
+            }
         }
     }
 

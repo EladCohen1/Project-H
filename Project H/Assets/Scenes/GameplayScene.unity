@@ -29182,18 +29182,6 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    - target: {fileID: 3030398476562452894, guid: 123c447ec58d8444fbe40ae6365e669b, type: 3}
-      propertyPath: _isGrounded
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3030398476562452894, guid: 123c447ec58d8444fbe40ae6365e669b, type: 3}
-      propertyPath: wallDistance
-      value: 0.4
-      objectReference: {fileID: 0}
-    - target: {fileID: 3030398476562452894, guid: 123c447ec58d8444fbe40ae6365e669b, type: 3}
-      propertyPath: groundDistance
-      value: 0.05
-      objectReference: {fileID: 0}
     - target: {fileID: 7900994465285454430, guid: 123c447ec58d8444fbe40ae6365e669b, type: 3}
       propertyPath: m_Name
       value: Player
