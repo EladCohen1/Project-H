@@ -749,7 +749,7 @@ TilemapRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: a97c105638bdf8b4a8650670310a4cd3, type: 2}
+  - {fileID: 2100000, guid: efd08aa417f1e9946b89cb8a95e0c5af, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -17222,7 +17222,7 @@ TilemapRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: a97c105638bdf8b4a8650670310a4cd3, type: 2}
+  - {fileID: 2100000, guid: efd08aa417f1e9946b89cb8a95e0c5af, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -29183,12 +29183,16 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3030398476562452894, guid: 123c447ec58d8444fbe40ae6365e669b, type: 3}
-      propertyPath: groundDistance
-      value: 0.1
+      propertyPath: _isGrounded
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 3030398476562452894, guid: 123c447ec58d8444fbe40ae6365e669b, type: 3}
-      propertyPath: cellingDistance
-      value: 0.1
+      propertyPath: wallDistance
+      value: 0.4
+      objectReference: {fileID: 0}
+    - target: {fileID: 3030398476562452894, guid: 123c447ec58d8444fbe40ae6365e669b, type: 3}
+      propertyPath: groundDistance
+      value: 0.05
       objectReference: {fileID: 0}
     - target: {fileID: 7900994465285454430, guid: 123c447ec58d8444fbe40ae6365e669b, type: 3}
       propertyPath: m_Name
