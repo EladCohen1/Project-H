@@ -134,12 +134,15 @@ MonoBehaviour:
   airAcceleration: 0.1
   maxAirSpeedByInputAcceleration: 2
   jumpImpulse: 8
+  wallSlidingXJumpImpulse: 3
   dashImpulse: 10
+  maxWallSlidingSpeed: 2
   _isMoving: 0
   _isModPressed: 0
   _isFacingRight: 1
   _isCombat: 0
   _didDash: 0
+  _isWallSliding: 0
 --- !u!114 &763473305655768043
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -348,13 +351,28 @@ MonoBehaviour:
     maxDepth: 0
     minNormalAngle: 0
     maxNormalAngle: 0
+  SlideableWallsLayerCastFilter:
+    useTriggers: 0
+    useLayerMask: 1
+    useDepth: 0
+    useOutsideDepth: 0
+    useNormalAngle: 0
+    useOutsideNormalAngle: 0
+    layerMask:
+      serializedVersion: 2
+      m_Bits: 64
+    minDepth: 0
+    maxDepth: 0
+    minNormalAngle: 0
+    maxNormalAngle: 0
   groundLayerMask:
     serializedVersion: 2
     m_Bits: 8
   groundDistance: 0.05
-  wallDistance: 0.3
+  wallDistance: 0.4
   cellingDistance: 0.05
   _isGrounded: 0
   _isOnWall: 0
   _isOnWallFromBehind: 0
   _isOnCelling: 0
+  _isOnSlidableWall: 0

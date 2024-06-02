@@ -12,7 +12,9 @@ public class PlayerController : MonoBehaviour
     public float airAcceleration = 0.1f;
     public float maxAirSpeedByInputAcceleration = 2f;
     public float jumpImpulse = 10f;
+    public float wallSlidingXJumpImpulse = 3f;
     public float dashImpulse = 8f;
+    public float maxWallSlidingSpeed = 2f;
     public float CurrentXMoveSpeed
     {
         get
@@ -45,6 +47,7 @@ public class PlayerController : MonoBehaviour
     public bool IsMoving { get { return _isMoving; } set { _isMoving = value; anim.SetBool(AnimationStrings.IsMoving, value); } }
     public bool IsModPressed { get { return _isModPressed; } set { _isModPressed = value; anim.SetBool(AnimationStrings.IsModPressed, value); } }
     public bool IsCombat { get { return _isCombat; } set { _isCombat = value; anim.SetBool(AnimationStrings.IsCombat, value); } }
+    public bool IsWallSliding { get { return _isWallSliding; } set { _isWallSliding = value; anim.SetBool(AnimationStrings.IsWallSliding, value); } }
 
     public bool IsFacingRight
     {
@@ -74,6 +77,8 @@ public class PlayerController : MonoBehaviour
     private bool _isCombat = false;
     [SerializeField]
     private bool _didDash = false;
+    [SerializeField]
+    private bool _isWallSliding = false;
 
 
     void Awake()
@@ -90,6 +95,7 @@ public class PlayerController : MonoBehaviour
         HandleMovement();
     }
 
+    // Utils
     private float GetXMovementInputDirection()
     {
         float movement = 0;
@@ -103,6 +109,19 @@ public class PlayerController : MonoBehaviour
         }
         return movement;
     }
+    private void CheckWallSliding()
+    {
+        if (!touchingDirections.IsGrounded && touchingDirections.IsOnSlidableWall && rb.velocity.y < 0 && moveInput.y >= 0)
+        {
+            IsWallSliding = true;
+        }
+        else
+        {
+            IsWallSliding = false;
+        }
+    }
+
+    // Handlers
     private void HandlePlayerRotation()
     {
         if (moveInput.x > 0)
@@ -116,6 +135,7 @@ public class PlayerController : MonoBehaviour
     }
     private void HandleMovement()
     {
+        CheckWallSliding();
         if (touchingDirections.IsGrounded)
         {
             HandleGroundedMovement();
@@ -124,6 +144,8 @@ public class PlayerController : MonoBehaviour
         else
         {
             HandleAirborneMovement();
+            HandleAirWallCollision();
+            HandleWallSliding();
         }
     }
     private void HandleGroundedMovement()
@@ -138,11 +160,21 @@ public class PlayerController : MonoBehaviour
         {
             rb.velocity = new Vector2(rb.velocity.x + GetXMovementInputDirection() * airAcceleration, rb.velocity.y);
         }
-        else if (touchingDirections.IsOnWall)
+    }
+    private void HandleAirWallCollision()
+    {
+        if (touchingDirections.IsOnWall)
         {
-            rb.velocity = new Vector2(0, rb.velocity.y);
+            if (rb.velocity.x * transform.localScale.x > 0)
+            {
+                rb.velocity = new Vector2(0, rb.velocity.y);
+            }
+            else
+            {
+                rb.velocity = new Vector2(rb.velocity.x + GetXMovementInputDirection() * airAcceleration, rb.velocity.y);
+            }
         }
-        else if (touchingDirections.IsOnWallFromBehind)
+        else if (touchingDirections.IsOnWallFromBehind) // allowing movement away from the wall but not into the wall
         {
             if (rb.velocity.x * transform.localScale.x < 0)
             {
@@ -151,6 +183,16 @@ public class PlayerController : MonoBehaviour
             else
             {
                 rb.velocity = new Vector2(rb.velocity.x + GetXMovementInputDirection() * airAcceleration, rb.velocity.y);
+            }
+        }
+    }
+    private void HandleWallSliding()
+    {
+        if (IsWallSliding)
+        {
+            if (rb.velocity.y <= -maxWallSlidingSpeed)
+            {
+                rb.velocity = new Vector2(rb.velocity.x, -maxWallSlidingSpeed);
             }
         }
     }
@@ -175,12 +217,17 @@ public class PlayerController : MonoBehaviour
     {
         if (context.started)
         {
-            if (touchingDirections.IsGrounded)
+            if (touchingDirections.IsGrounded) // normal jump
             {
                 anim.SetTrigger(AnimationStrings.Jump);
                 rb.velocity = new Vector2(rb.velocity.x, jumpImpulse);
             }
-            else if (!_didDash)
+            else if (touchingDirections.IsOnSlidableWall) // wall jump
+            {
+                float oppositeFacingDirection = IsFacingRight ? -1 : 1;
+                rb.velocity = new Vector2(wallSlidingXJumpImpulse * oppositeFacingDirection, jumpImpulse);
+            }
+            else if (!_didDash) // dash
             {
                 float facingDirection = IsFacingRight ? 1 : -1;
                 rb.velocity = new Vector2(rb.velocity.x + dashImpulse * facingDirection, rb.velocity.y);

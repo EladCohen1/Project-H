@@ -7,14 +7,16 @@ using UnityEngine;
 public class TouchingDirections : MonoBehaviour
 {
     public ContactFilter2D castFilter;
+    public ContactFilter2D SlideableWallsLayerCastFilter;
     public LayerMask groundLayerMask;
-    public float groundDistance = 0.1f;
-    public float wallDistance = 0.3f;
-    public float cellingDistance = 0.1f;
+    public float groundDistance = 0.05f;
+    public float wallDistance = 0.4f;
+    public float cellingDistance = 0.05f;
 
     private CapsuleCollider2D touchingCol;
     private RaycastHit2D[] groundHits = new RaycastHit2D[5];
     private RaycastHit2D[] wallHits = new RaycastHit2D[5];
+    private RaycastHit2D[] slidableWallHits = new RaycastHit2D[5];
     private RaycastHit2D[] cellingHits = new RaycastHit2D[5];
 
     public bool IsGrounded
@@ -69,6 +71,15 @@ public class TouchingDirections : MonoBehaviour
         }
     }
 
+    public bool IsOnSlidableWall
+    {
+        get { return _isOnSlidableWall; }
+        private set
+        {
+            _isOnSlidableWall = value;
+        }
+    }
+
     [SerializeField]
     private bool _isGrounded = true;
     [SerializeField]
@@ -77,6 +88,8 @@ public class TouchingDirections : MonoBehaviour
     private bool _isOnWallFromBehind = false;
     [SerializeField]
     private bool _isOnCelling = false;
+    [SerializeField]
+    private bool _isOnSlidableWall = false;
 
     // Components
     Animator anim;
@@ -94,5 +107,6 @@ public class TouchingDirections : MonoBehaviour
         IsOnWall = touchingCol.Cast(forwardDirection, castFilter, wallHits, wallDistance) > 0;
         IsOnWallFromBehind = touchingCol.Cast(forwardDirection * new Vector2(-1, 1), castFilter, wallHits, wallDistance) > 0;
         IsOnCelling = touchingCol.Cast(Vector2.up, castFilter, cellingHits, cellingDistance) > 0;
+        IsOnSlidableWall = touchingCol.Cast(forwardDirection, SlideableWallsLayerCastFilter, slidableWallHits, wallDistance) > 0;
     }
 }
