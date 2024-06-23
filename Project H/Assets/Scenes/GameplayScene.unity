@@ -29520,10 +29520,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: Player
       objectReference: {fileID: 0}
-    - target: {fileID: 8406470444250628679, guid: 123c447ec58d8444fbe40ae6365e669b, type: 3}
-      propertyPath: jumpButtonGracePeriod
-      value: 0.1
-      objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 3450686339998728880, guid: 123c447ec58d8444fbe40ae6365e669b, type: 3}
     m_RemovedGameObjects: []

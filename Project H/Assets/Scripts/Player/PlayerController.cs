@@ -7,15 +7,28 @@ using UnityEngine.InputSystem;
 public class PlayerController : MonoBehaviour
 {
     [Header("Stats")]
+
+    [Header("Grounded Movement Stats")]
     public float walkSpeed = 5f;
     public float runSpeed = 8f;
-    public float airAcceleration = 0.1f;
-    public float maxAirSpeedByInputAcceleration = 2f;
+    public float acceleration = 3f;
+    public float deceleration = 2f;
+    public float velPower = 1.3f;
+    public float frictionAmount = 0.1f;
+    [Space(10)]
+    [Header("Air Movement Stats")]
+    public float airAcceleration = 1f;
+    public float maxAirSpeedByInputAcceleration = 7f;
+    public float airAccelerationMax = 1f;
+    public float maxAirSpeedByInputAccelerationMax = 7f;
+    public float airAccelerationMin = 0.1f;
+    public float maxAirSpeedByInputAccelerationMin = 0.7f;
     public float jumpImpulse = 10f;
     public float wallSlidingXJumpImpulse = 3f;
     public float dashImpulse = 8f;
     public float maxWallSlidingSpeed = 2f;
     public float jumpButtonGracePeriod = 0.2f;
+    public float jumpCutMult = 0.5f;
     public float CurrentXMoveSpeed
     {
         get
@@ -77,13 +90,15 @@ public class PlayerController : MonoBehaviour
     [SerializeField]
     private bool _isCombat = false;
     [SerializeField]
-    private bool _didDash = false;
+    private bool _didAirDash = false;
     [SerializeField]
     private bool _isWallSliding = false;
     [SerializeField]
     private bool _canMove = true;
     [SerializeField]
     private bool _canWallHop = false;
+    [SerializeField]
+    private bool _isJumping = false;
 
 
     [Header("Util Variables")]
@@ -111,7 +126,11 @@ public class PlayerController : MonoBehaviour
         HandleWallSliding();
         #endregion
 
-        #region Move
+        #region Movement
+        if (touchingDirections.IsGrounded && _didAirDash)
+        {
+            _didAirDash = false;
+        }
         if (_canMove)
         {
             HandlePlayerRotation();
@@ -120,6 +139,10 @@ public class PlayerController : MonoBehaviour
         #endregion
 
         #region Jump
+        if (_isJumping && rb.velocity.y <= 0)
+        {
+            _isJumping = false;
+        }
         if (touchingDirections.IsGrounded)
         {
             lastGroundedTime = Time.time;
@@ -147,13 +170,13 @@ public class PlayerController : MonoBehaviour
         {
             IsWallSliding = true; // wall sliding
             _canMove = false; // stick to wall
-            _didDash = false; // reset dash cd
+            _didAirDash = false; // reset air dash
         }
         else
         {
             IsWallSliding = false;
-            _canMove = true;
             IsMoving = moveInput.x != 0;
+            _canMove = true;
         }
 
         // Checking for detaching from the wall by holding the other direction
@@ -206,7 +229,6 @@ public class PlayerController : MonoBehaviour
         if (touchingDirections.IsGrounded)
         {
             HandleGroundedMovement();
-            _didDash = false;
         }
         else
         {
@@ -216,7 +238,24 @@ public class PlayerController : MonoBehaviour
     }
     private void HandleGroundedMovement()
     {
-        rb.velocity = new Vector2(GetXMovementInputDirection() * CurrentXMoveSpeed, rb.velocity.y);
+        float targetSpeed = GetXMovementInputDirection() * CurrentXMoveSpeed;
+        float speedDif = targetSpeed - rb.velocity.x;
+        float accelRate = (Mathf.Abs(targetSpeed) > 0.01f) ? acceleration : deceleration;
+        float movement = Mathf.Pow(Mathf.Abs(speedDif) * accelRate, velPower) * Mathf.Sign(speedDif);
+        rb.AddForce(movement * Vector2.right);
+        if (targetSpeed == 0)
+        {
+            float amount = Mathf.Min(Mathf.Abs(rb.velocity.x), Mathf.Abs(frictionAmount));
+            amount *= Mathf.Sign(rb.velocity.x);
+            rb.AddForce(Vector2.right * -amount, ForceMode2D.Impulse);
+        }
+        // if (accelRate == deceleration)
+        // {
+        //     add deceleration animation
+        // }
+        // if(Mathf.Abs(speedDif) > Mathf.Abs(targetSpeed)){
+        //     means turning, add turning animation
+        // }
     }
     private void HandleAirborneMovement()
     {
@@ -276,6 +315,21 @@ public class PlayerController : MonoBehaviour
         yield return new WaitForSeconds(0.2f);
         _canWallHop = false;
     }
+    IEnumerator WallHopLock()
+    {
+        // slowly regaining air control
+        yield return new WaitForSeconds(0.3f);
+        float airAccelerationAdd = (airAccelerationMax - airAccelerationMin) / 5;
+        float maxAirSpeedByInputAccelerationAdd = (maxAirSpeedByInputAccelerationMax - maxAirSpeedByInputAccelerationMin) / 5;
+        for (int i = 0; i < 5; i++)
+        {
+            yield return new WaitForSeconds(0.1f);
+            airAcceleration += airAccelerationAdd;
+            maxAirSpeedByInputAcceleration += maxAirSpeedByInputAccelerationAdd;
+        }
+        airAcceleration = airAccelerationMax;
+        maxAirSpeedByInputAcceleration = maxAirSpeedByInputAccelerationMax;
+    }
 
 
     // Events
@@ -306,18 +360,23 @@ public class PlayerController : MonoBehaviour
             {
                 anim.SetTrigger(AnimationStrings.Jump);
                 rb.velocity = new Vector2(rb.velocity.x, jumpImpulse);
+                _isJumping = true;
                 lastGroundedTime = null;
             }
             else if (_canWallHop) // wall jump
             {
                 rb.velocity = new Vector2(wallSlidingXJumpImpulse * touchingDirections.slidingWallXDirection * -1, jumpImpulse);
-                _didDash = false;
+                _didAirDash = false;
+                // lock into wall jump for a while after wall jumping to stop wall climbing
+                airAcceleration = airAccelerationMin;
+                maxAirSpeedByInputAcceleration = maxAirSpeedByInputAccelerationMin;
+                StartCoroutine(WallHopLock());
             }
-            else if (!_didDash && !touchingDirections.IsOnWall) // dash
+            else if (!_didAirDash && !touchingDirections.IsOnWall) // dash
             {
                 float facingDirection = IsFacingRight ? 1 : -1;
                 rb.velocity = new Vector2(rb.velocity.x + dashImpulse * facingDirection, rb.velocity.y);
-                _didDash = true;
+                _didAirDash = true;
             }
         }
     }
