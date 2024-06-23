@@ -80,6 +80,15 @@ public class TouchingDirections : MonoBehaviour
         }
     }
 
+    public bool IsOnSlidableWallFromBehind
+    {
+        get { return _isOnSlidableWallFromBehind; }
+        private set
+        {
+            _isOnSlidableWallFromBehind = value;
+        }
+    }
+
     public float slidingWallXDirection;
     public float onWallXDirection;
     public float onWallFromBehindXDirection;
@@ -94,6 +103,8 @@ public class TouchingDirections : MonoBehaviour
     private bool _isOnCelling = false;
     [SerializeField]
     private bool _isOnSlidableWall = false;
+    [SerializeField]
+    private bool _isOnSlidableWallFromBehind = false;
 
     // Components
     Animator anim;
@@ -112,9 +123,14 @@ public class TouchingDirections : MonoBehaviour
         IsOnWallFromBehind = touchingCol.Cast(forwardDirection * new Vector2(-1, 1), castFilter, wallHits, wallDistance) > 0;
         IsOnCelling = touchingCol.Cast(Vector2.up, castFilter, cellingHits, cellingDistance) > 0;
         IsOnSlidableWall = touchingCol.Cast(forwardDirection, SlideableWallsLayerCastFilter, slidableWallHits, wallDistance) > 0;
+        IsOnSlidableWallFromBehind = touchingCol.Cast(forwardDirection * new Vector2(-1, 1), SlideableWallsLayerCastFilter, slidableWallHits, wallDistance) > 0;
         if (IsOnSlidableWall)
         {
             slidingWallXDirection = forwardDirection.x;
+        }
+        if (IsOnSlidableWallFromBehind)
+        {
+            slidingWallXDirection = forwardDirection.x * -1;
         }
         if (IsOnWall)
         {

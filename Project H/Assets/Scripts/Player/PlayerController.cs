@@ -15,6 +15,7 @@ public class PlayerController : MonoBehaviour
     public float wallSlidingXJumpImpulse = 3f;
     public float dashImpulse = 8f;
     public float maxWallSlidingSpeed = 2f;
+    public float jumpButtonGracePeriod = 0.2f;
     public float CurrentXMoveSpeed
     {
         get
@@ -82,12 +83,13 @@ public class PlayerController : MonoBehaviour
     [SerializeField]
     private bool _canMove = true;
     [SerializeField]
-    private bool _canWallHop = true;
+    private bool _canWallHop = false;
 
 
     [Header("Util Variables")]
     private Coroutine wallSlideGraceCoroutine = null;
     private Coroutine wallHopGraceCoroutine = null;
+    private float? lastGroundedTime = null;
 
 
     void Awake()
@@ -99,15 +101,30 @@ public class PlayerController : MonoBehaviour
 
     void FixedUpdate()
     {
+        #region Anim Update
         anim.SetFloat(AnimationStrings.YVelocity, rb.velocity.y);
+        #endregion
+
+        #region Wall Slide
         CheckWallSliding();
         CheckWallHop();
         HandleWallSliding();
+        #endregion
+
+        #region Move
         if (_canMove)
         {
             HandlePlayerRotation();
             HandleMovement();
         }
+        #endregion
+
+        #region Jump
+        if (touchingDirections.IsGrounded)
+        {
+            lastGroundedTime = Time.time;
+        }
+        #endregion
     }
 
     // Utils
@@ -128,9 +145,9 @@ public class PlayerController : MonoBehaviour
     {
         if (!touchingDirections.IsGrounded && touchingDirections.IsOnSlidableWall && rb.velocity.y < 0 && moveInput.y >= 0)
         {
-            IsWallSliding = true;
-            _canMove = false;
-            _didDash = false;
+            IsWallSliding = true; // wall sliding
+            _canMove = false; // stick to wall
+            _didDash = false; // reset dash cd
         }
         else
         {
@@ -142,7 +159,7 @@ public class PlayerController : MonoBehaviour
         // Checking for detaching from the wall by holding the other direction
         if (IsWallSliding)
         {
-            if (moveInput.x * touchingDirections.slidingWallXDirection < 0)
+            if (moveInput.x * touchingDirections.slidingWallXDirection < 0) // if holding the opposite direction from the wall
             {
                 if (wallSlideGraceCoroutine == null)
                 {
@@ -161,7 +178,7 @@ public class PlayerController : MonoBehaviour
     }
     private void CheckWallHop()
     {
-        if (touchingDirections.IsOnSlidableWall)
+        if (touchingDirections.IsOnSlidableWall || touchingDirections.IsOnSlidableWallFromBehind)
         {
             _canWallHop = true;
             if (wallHopGraceCoroutine != null)
@@ -246,6 +263,8 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+
+
     // Coroutines
     IEnumerator WallSlidingGrace()
     {
@@ -283,10 +302,11 @@ public class PlayerController : MonoBehaviour
     {
         if (context.started)
         {
-            if (touchingDirections.IsGrounded) // normal jump
+            if (Time.time - lastGroundedTime <= jumpButtonGracePeriod) // normal jump
             {
                 anim.SetTrigger(AnimationStrings.Jump);
                 rb.velocity = new Vector2(rb.velocity.x, jumpImpulse);
+                lastGroundedTime = null;
             }
             else if (_canWallHop) // wall jump
             {
