@@ -1,5 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -15,20 +17,26 @@ public class PlayerController : MonoBehaviour
     public float deceleration = 2f;
     public float velPower = 1.3f;
     public float frictionAmount = 0.1f;
+
     [Space(10)]
     [Header("Air Movement Stats")]
     public float airAcceleration = 1f;
     public float maxAirSpeedByInputAcceleration = 7f;
     public float airAccelerationMax = 1f;
-    public float maxAirSpeedByInputAccelerationMax = 7f;
     public float airAccelerationMin = 0.1f;
-    public float maxAirSpeedByInputAccelerationMin = 0.7f;
-    public float jumpImpulse = 10f;
-    public float wallSlidingXJumpImpulse = 3f;
-    public float dashImpulse = 8f;
-    public float maxWallSlidingSpeed = 2f;
-    public float jumpButtonGracePeriod = 0.2f;
-    public float jumpCutMult = 0.5f;
+
+    [Space(10)]
+    [Header("Dash")]
+    public float dashImpulse = 20f;
+    public float dashTime = 0.2f;
+    public float dashCD = 0.7f;
+
+    [Space(10)]
+    [Header("Jump")]
+    public float jumpImpulse = 8f;
+    public float jumpButtonGracePeriod = 0.1f;
+
+
     public float CurrentXMoveSpeed
     {
         get
@@ -48,14 +56,20 @@ public class PlayerController : MonoBehaviour
             return 0;
         }
     }
-
+    [Space(10)]
     [Header("Components")]
-    Rigidbody2D rb;
-    Animator anim;
-    TouchingDirections touchingDirections;
+    public Rigidbody2D rb;
+    public Animator anim;
+    public TouchingDirections touchingDirections;
+    public TrailRenderer tr;
+    public PlayerDash dashController;
+    public PlayerUtils utils;
+    public PlayerWallSlide wallSlideController;
+    public PlayerWallHop wallHopController;
 
+    [Space(10)]
     [Header("Inputs")]
-    private Vector2 moveInput;
+    public Vector2 moveInput;
 
     // Public status bools
     public bool IsMoving { get { return _isMoving; } set { _isMoving = value; anim.SetBool(AnimationStrings.IsMoving, value); } }
@@ -63,55 +77,45 @@ public class PlayerController : MonoBehaviour
     public bool IsCombat { get { return _isCombat; } set { _isCombat = value; anim.SetBool(AnimationStrings.IsCombat, value); } }
     public bool IsWallSliding { get { return _isWallSliding; } set { _isWallSliding = value; anim.SetBool(AnimationStrings.IsWallSliding, value); } }
 
-    public bool IsFacingRight
-    {
-        get
-        {
-            return _isFacingRight;
-        }
-        private set
-        {
-            if (_isFacingRight != value)
-            {
-                transform.localScale *= new Vector2(-1, 1);
-                _isFacingRight = value;
-            }
-        }
-    }
+
 
     [Header("Status Bools")]
     // Private status bools
+    [Header("State")]
     [SerializeField]
     private bool _isMoving = false;
-    [SerializeField]
-    private bool _isModPressed = false;
-    [SerializeField]
-    private bool _isFacingRight = true;
-    [SerializeField]
-    private bool _isCombat = false;
-    [SerializeField]
-    private bool _didAirDash = false;
+
     [SerializeField]
     private bool _isWallSliding = false;
     [SerializeField]
-    private bool _canMove = true;
+    private bool _isCombat = false;
+
+    [Header("Input")]
     [SerializeField]
-    private bool _canWallHop = false;
+    private bool _isModPressed = false;
+
+
+    [Header("Actions")]
+
     [SerializeField]
-    private bool _isJumping = false;
+    public bool _isJumping = false; // tracks if the player is on the way up on a manual jump
 
 
     [Header("Util Variables")]
-    private Coroutine wallSlideGraceCoroutine = null;
-    private Coroutine wallHopGraceCoroutine = null;
-    private float? lastGroundedTime = null;
+    public float? lastGroundedTime = null;
+
 
 
     void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         anim = GetComponent<Animator>();
+        utils = GetComponent<PlayerUtils>();
         touchingDirections = GetComponent<TouchingDirections>();
+        tr = GetComponent<TrailRenderer>();
+        dashController = GetComponent<PlayerDash>();
+        wallSlideController = GetComponent<PlayerWallSlide>();
+        wallHopController = GetComponent<PlayerWallHop>();
     }
 
     void FixedUpdate()
@@ -120,18 +124,17 @@ public class PlayerController : MonoBehaviour
         anim.SetFloat(AnimationStrings.YVelocity, rb.velocity.y);
         #endregion
 
-        #region Wall Slide
-        CheckWallSliding();
-        CheckWallHop();
-        HandleWallSliding();
-        #endregion
-
-        #region Movement
-        if (touchingDirections.IsGrounded && _didAirDash)
+        if (touchingDirections.IsGrounded)
         {
-            _didAirDash = false;
+            lastGroundedTime = Time.time;
         }
-        if (_canMove)
+
+        if (dashController._isDashing)
+        {
+            return;
+        }
+        #region Movement
+        if (utils._canMove)
         {
             HandlePlayerRotation();
             HandleMovement();
@@ -142,10 +145,6 @@ public class PlayerController : MonoBehaviour
         if (_isJumping && rb.velocity.y <= 0)
         {
             _isJumping = false;
-        }
-        if (touchingDirections.IsGrounded)
-        {
-            lastGroundedTime = Time.time;
         }
         #endregion
     }
@@ -164,64 +163,19 @@ public class PlayerController : MonoBehaviour
         }
         return movement;
     }
-    private void CheckWallSliding()
-    {
-        if (!touchingDirections.IsGrounded && touchingDirections.IsOnSlidableWall && rb.velocity.y < 0 && moveInput.y >= 0)
-        {
-            IsWallSliding = true; // wall sliding
-            _canMove = false; // stick to wall
-            _didAirDash = false; // reset air dash
-        }
-        else
-        {
-            IsWallSliding = false;
-            IsMoving = moveInput.x != 0;
-            _canMove = true;
-        }
 
-        // Checking for detaching from the wall by holding the other direction
-        if (IsWallSliding)
-        {
-            if (moveInput.x * touchingDirections.slidingWallXDirection < 0) // if holding the opposite direction from the wall
-            {
-                if (wallSlideGraceCoroutine == null)
-                {
-                    wallSlideGraceCoroutine = StartCoroutine(WallSlidingGrace());
-                }
-            }
-            else
-            {
-                if (wallSlideGraceCoroutine != null)
-                {
-                    StopCoroutine(wallSlideGraceCoroutine);
-                }
-                wallSlideGraceCoroutine = null;
-            }
-        }
-    }
-    private void CheckWallHop()
-    {
-        if (touchingDirections.IsOnSlidableWall || touchingDirections.IsOnSlidableWallFromBehind)
-        {
-            _canWallHop = true;
-            if (wallHopGraceCoroutine != null)
-            {
-                StopCoroutine(wallHopGraceCoroutine);
-            }
-            wallHopGraceCoroutine = StartCoroutine(WallHopGrace());
-        }
-    }
+
 
     // Handlers
     private void HandlePlayerRotation()
     {
         if (moveInput.x > 0)
         {
-            IsFacingRight = true;
+            utils.IsFacingRight = true;
         }
         else if (moveInput.x < 0)
         {
-            IsFacingRight = false;
+            utils.IsFacingRight = false;
         }
     }
     private void HandleMovement()
@@ -232,8 +186,14 @@ public class PlayerController : MonoBehaviour
         }
         else
         {
-            HandleAirborneMovement();
-            HandleAirWallCollision();
+            if (touchingDirections.IsOnWall || touchingDirections.IsOnWallFromBehind)
+            {
+                HandleAirWallCollision();
+            }
+            else
+            {
+                HandleAirborneMovement();
+            }
         }
     }
     private void HandleGroundedMovement()
@@ -259,9 +219,8 @@ public class PlayerController : MonoBehaviour
     }
     private void HandleAirborneMovement()
     {
-        // if didn't reach max air velocity by input acceleration or trying to accelerate against current speed or is on wall
-        if ((Mathf.Abs(rb.velocity.x) < maxAirSpeedByInputAcceleration || (GetXMovementInputDirection() * rb.velocity.x < 0)) &&
-        !(touchingDirections.IsOnWall || touchingDirections.IsOnWallFromBehind))
+        // if didn't reach max air velocity by input acceleration or trying to accelerate against current speed
+        if (Mathf.Abs(rb.velocity.x) < maxAirSpeedByInputAcceleration || (GetXMovementInputDirection() * rb.velocity.x < 0))
         {
             rb.velocity = new Vector2(rb.velocity.x + GetXMovementInputDirection() * airAcceleration, rb.velocity.y);
         }
@@ -270,7 +229,7 @@ public class PlayerController : MonoBehaviour
     {
         if (touchingDirections.IsOnWall)
         {
-            if (rb.velocity.x * touchingDirections.onWallXDirection > 0)
+            if (utils.playerdirectionAsNumber * touchingDirections.onWallXDirection > 0)
             {
                 rb.velocity = new Vector2(0, rb.velocity.y);
             }
@@ -281,7 +240,7 @@ public class PlayerController : MonoBehaviour
         }
         else if (touchingDirections.IsOnWallFromBehind) // allowing movement away from the wall but not into the wall
         {
-            if (rb.velocity.x * touchingDirections.onWallFromBehindXDirection > 0)
+            if (utils.playerdirectionAsNumber * touchingDirections.onWallFromBehindXDirection > 0)
             {
                 rb.velocity = new Vector2(0, rb.velocity.y);
             }
@@ -291,52 +250,13 @@ public class PlayerController : MonoBehaviour
             }
         }
     }
-    private void HandleWallSliding()
-    {
-        if (IsWallSliding)
-        {
-            if (rb.velocity.y <= -maxWallSlidingSpeed)
-            {
-                rb.velocity = new Vector2(rb.velocity.x, -maxWallSlidingSpeed);
-            }
-        }
-    }
-
-
-
-    // Coroutines
-    IEnumerator WallSlidingGrace()
-    {
-        yield return new WaitForSeconds(0.25f);
-        IsFacingRight = !IsFacingRight;
-    }
-    IEnumerator WallHopGrace()
-    {
-        yield return new WaitForSeconds(0.2f);
-        _canWallHop = false;
-    }
-    IEnumerator WallHopLock()
-    {
-        // slowly regaining air control
-        yield return new WaitForSeconds(0.3f);
-        float airAccelerationAdd = (airAccelerationMax - airAccelerationMin) / 5;
-        float maxAirSpeedByInputAccelerationAdd = (maxAirSpeedByInputAccelerationMax - maxAirSpeedByInputAccelerationMin) / 5;
-        for (int i = 0; i < 5; i++)
-        {
-            yield return new WaitForSeconds(0.1f);
-            airAcceleration += airAccelerationAdd;
-            maxAirSpeedByInputAcceleration += maxAirSpeedByInputAccelerationAdd;
-        }
-        airAcceleration = airAccelerationMax;
-        maxAirSpeedByInputAcceleration = maxAirSpeedByInputAccelerationMax;
-    }
 
 
     // Events
     public void OnMove(InputAction.CallbackContext context)
     {
         moveInput = context.ReadValue<Vector2>();
-        if (_canMove)
+        if (utils._canMove)
         {
             IsMoving = moveInput.x != 0;
         }
@@ -356,27 +276,21 @@ public class PlayerController : MonoBehaviour
     {
         if (context.started)
         {
-            if (Time.time - lastGroundedTime <= jumpButtonGracePeriod) // normal jump
+            if (Time.time - lastGroundedTime <= jumpButtonGracePeriod && !dashController._isDashing) // normal jump
             {
                 anim.SetTrigger(AnimationStrings.Jump);
                 rb.velocity = new Vector2(rb.velocity.x, jumpImpulse);
                 _isJumping = true;
                 lastGroundedTime = null;
             }
-            else if (_canWallHop) // wall jump
+            else if (wallHopController._canWallHop) // wall jump
             {
-                rb.velocity = new Vector2(wallSlidingXJumpImpulse * touchingDirections.slidingWallXDirection * -1, jumpImpulse);
-                _didAirDash = false;
-                // lock into wall jump for a while after wall jumping to stop wall climbing
-                airAcceleration = airAccelerationMin;
-                maxAirSpeedByInputAcceleration = maxAirSpeedByInputAccelerationMin;
-                StartCoroutine(WallHopLock());
+                wallHopController.WallHop();
             }
-            else if (!_didAirDash && !touchingDirections.IsOnWall) // dash
+            else if (dashController._isDashing && Time.time - lastGroundedTime <= jumpButtonGracePeriod) // Dash jump
             {
-                float facingDirection = IsFacingRight ? 1 : -1;
-                rb.velocity = new Vector2(rb.velocity.x + dashImpulse * facingDirection, rb.velocity.y);
-                _didAirDash = true;
+                dashController._isDashJumping = true;
+                rb.velocity = new Vector2(utils.playerdirectionAsNumber * dashImpulse, jumpImpulse);
             }
         }
     }
