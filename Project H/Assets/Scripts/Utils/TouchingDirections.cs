@@ -3,6 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 
 
+// Requires a capsuleCollider2D
+// Requires "GeneralUtils" util
+// Requires AnimationStrings Dic
+// Will check if player is touching a solid object from any direction
+
+
 [RequireComponent(typeof(CapsuleCollider2D))]
 public class TouchingDirections : MonoBehaviour
 {
@@ -25,7 +31,7 @@ public class TouchingDirections : MonoBehaviour
         private set
         {
             _isGrounded = value;
-            if (anim != null)
+            if (anim != null && GeneralUtils.HasParameter(AnimationStrings.IsGrounded, anim))
             {
                 anim.SetBool(AnimationStrings.IsGrounded, value);
             }
@@ -38,7 +44,7 @@ public class TouchingDirections : MonoBehaviour
         private set
         {
             _isOnWall = value;
-            if (anim != null)
+            if (anim != null && GeneralUtils.HasParameter(AnimationStrings.IsOnWall, anim))
             {
                 anim.SetBool(AnimationStrings.IsOnWall, value);
             }
@@ -51,7 +57,7 @@ public class TouchingDirections : MonoBehaviour
         private set
         {
             _isOnWallFromBehind = value;
-            if (anim != null)
+            if (anim != null && GeneralUtils.HasParameter(AnimationStrings.IsOnWallFromBehind, anim))
             {
                 anim.SetBool(AnimationStrings.IsOnWallFromBehind, value);
             }
@@ -64,7 +70,7 @@ public class TouchingDirections : MonoBehaviour
         private set
         {
             _isOnCelling = value;
-            if (anim != null)
+            if (anim != null && GeneralUtils.HasParameter(AnimationStrings.IsOnCelling, anim))
             {
                 anim.SetBool(AnimationStrings.IsOnCelling, value);
             }

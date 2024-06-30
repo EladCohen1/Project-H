@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 // Relies on a Rigidbody2D and the MutliLock class
 // Offers utils for a playerController
@@ -9,15 +10,34 @@ using UnityEngine;
 // _canMove tracks if any lockers for player movement currently exist and returns true if none exist
 // Edit enum MoveLocker to add or remove types of movement lockers
 
+// Allows Mod button management, bind input button to OnMod function
+// automatically updates IsModPressed animator param if exists
+
 [RequireComponent(typeof(Rigidbody2D), typeof(TouchingDirections))]
 public class PlayerUtils : MonoBehaviour
 {
     [Header("Components")]
     Rigidbody2D rb;
+    Animator anim;
 
     public float playerdirectionAsNumber => rb.transform.localScale.x > 0 ? 1 : -1;
     public MultiLock<MoveLocker> canMoveLocker = new MultiLock<MoveLocker>();
     public bool _canMove => canMoveLocker.IsFree();
+
+    [Header("Input")]
+    [SerializeField]
+    private bool _isModPressed = false;
+
+    public bool IsModPressed
+    {
+        get { return _isModPressed; }
+        set
+        {
+            _isModPressed = value;
+            if (anim != null && GeneralUtils.HasParameter(AnimationStrings.IsModPressed, anim))
+                anim.SetBool(AnimationStrings.IsModPressed, value);
+        }
+    }
 
 
     [SerializeField]
@@ -40,7 +60,20 @@ public class PlayerUtils : MonoBehaviour
 
     void Awake()
     {
+        anim = GetComponent<Animator>();
         rb = GetComponent<Rigidbody2D>();
+    }
+
+    public void OnMod(InputAction.CallbackContext context)
+    {
+        if (context.started)
+        {
+            IsModPressed = true;
+        }
+        else if (context.canceled)
+        {
+            IsModPressed = false;
+        }
     }
 }
 

@@ -8,18 +8,34 @@ using UnityEngine;
 // IsMoving is a bool that stores whether the player is currently moving (requires implementation)
 // moveInput is a Vector2 that stores the movement of the player (requires implementation)
 
-// Shows "allowWallSlide" allowing to disable wallsliding, true by default
+// Requires AnimationStrings Dic
+
+// Reveals bool IsWallSliding that dynamically changes based on the character's state and updates "IsWallSliding" bool in the animator
+// Reveals "allowWallSlide" allowing to disable wallsliding, true by default
 
 
 [RequireComponent(typeof(Rigidbody2D), typeof(TouchingDirections))]
 public class PlayerWallSlide : MonoBehaviour
 {
     [Header("Components")]
-    PlayerController playerController;
+    PlayerMove playerMove;
     PlayerUtils utils;
     TouchingDirections touchingDirections;
     Rigidbody2D rb;
+    Animator anim;
 
+
+    public bool IsWallSliding
+    {
+        get { return _isWallSliding; }
+        set
+        {
+            _isWallSliding = value;
+            if (anim != null && GeneralUtils.HasParameter(AnimationStrings.IsWallSliding, anim))
+                anim.SetBool(AnimationStrings.IsWallSliding, value);
+        }
+    }
+    private bool _isWallSliding = false;
     public bool allowWallSlide = true;
     public Coroutine wallSlideGraceCoroutine = null;
 
@@ -28,10 +44,11 @@ public class PlayerWallSlide : MonoBehaviour
 
     void Awake()
     {
-        playerController = GetComponent<PlayerController>();
+        playerMove = GetComponent<PlayerMove>();
         utils = GetComponent<PlayerUtils>();
         touchingDirections = GetComponent<TouchingDirections>();
         rb = GetComponent<Rigidbody2D>();
+        anim = GetComponent<Animator>();
     }
 
     void FixedUpdate()
@@ -51,22 +68,22 @@ public class PlayerWallSlide : MonoBehaviour
 
     public void CheckWallSliding()
     {
-        if (!touchingDirections.IsGrounded && touchingDirections.IsOnSlidableWall && rb.velocity.y < 0 && playerController.moveInput.y >= 0)
+        if (!touchingDirections.IsGrounded && touchingDirections.IsOnSlidableWall && rb.velocity.y < 0 && playerMove.moveInput.y >= 0)
         {
-            playerController.IsWallSliding = true; // wall sliding
+            IsWallSliding = true; // wall sliding
             utils.canMoveLocker.Lock(MoveLocker.WallSlide); // stick to wall
         }
         else
         {
-            playerController.IsWallSliding = false;
-            playerController.IsMoving = playerController.moveInput.x != 0;
+            IsWallSliding = false;
+            playerMove.IsMoving = playerMove.moveInput.x != 0;
             utils.canMoveLocker.Unlock(MoveLocker.WallSlide);
         }
 
         // Checking for detaching from the wall by holding the other direction
-        if (playerController.IsWallSliding)
+        if (IsWallSliding)
         {
-            if (playerController.moveInput.x * touchingDirections.slidingWallXDirection < 0) // if holding the opposite direction from the wall
+            if (playerMove.moveInput.x * touchingDirections.slidingWallXDirection < 0) // if holding the opposite direction from the wall
             {
                 if (wallSlideGraceCoroutine == null)
                 {
@@ -85,7 +102,7 @@ public class PlayerWallSlide : MonoBehaviour
     }
     public void HandleWallSliding()
     {
-        if (playerController.IsWallSliding)
+        if (IsWallSliding)
         {
             if (rb.velocity.y <= -maxWallSlidingSpeed)
             {

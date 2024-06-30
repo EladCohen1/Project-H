@@ -4,18 +4,20 @@ using UnityEngine;
 
 // Relies on PlayerUtils util and touchingDirections util
 // Offers air Acceleration lock and slow regain after wallhop
-// PlayerController must implement airAcceleration,airAccelerationMax,airAccelerationMin where:
+// PlayerMove Util use is recommended, otherwise self implement PlayerMove with the following properties: airAcceleration,airAccelerationMax,airAccelerationMin where:
 // airAcceleration is the used air acceleration determinator
 // airAccelerationMax is the default value of the air acceleration
 // airAccelerationMin is the minimum air acceleration that will be the first value given to the player when they wall hop before regaining their full acceleration ability
 
 // Shows "allowCheckWallHop" allowing to disable the wall hop check on fixedupdate that will update the value of "_canWallHop"
 
+// Recommended to use in conjunction with "PlayerJump" util and set "canWallHop" to true there
+
 [RequireComponent(typeof(Rigidbody2D), typeof(TouchingDirections), typeof(PlayerUtils))]
 public class PlayerWallHop : MonoBehaviour
 {
     [Header("Components")]
-    PlayerController playerController;
+    PlayerMove playerMove;
     PlayerUtils utils;
     TouchingDirections touchingDirections;
     Rigidbody2D rb;
@@ -35,7 +37,7 @@ public class PlayerWallHop : MonoBehaviour
 
     void Awake()
     {
-        playerController = GetComponent<PlayerController>();
+        playerMove = GetComponent<PlayerMove>();
         utils = GetComponent<PlayerUtils>();
         touchingDirections = GetComponent<TouchingDirections>();
         rb = GetComponent<Rigidbody2D>();
@@ -71,13 +73,13 @@ public class PlayerWallHop : MonoBehaviour
         utils.canMoveLocker.Lock(MoveLocker.wallHop);
         yield return new WaitForSeconds(0.3f);
         utils.canMoveLocker.Unlock(MoveLocker.wallHop);
-        float airAccelerationAdd = (playerController.airAccelerationMax - playerController.airAccelerationMin) / 5;
+        float airAccelerationAdd = (playerMove.airAccelerationMax - playerMove.airAccelerationMin) / 5;
         for (int i = 0; i < 5; i++)
         {
             yield return new WaitForSeconds(0.1f);
-            playerController.airAcceleration += airAccelerationAdd;
+            playerMove.airAcceleration += airAccelerationAdd;
         }
-        playerController.airAcceleration = playerController.airAccelerationMax;
+        playerMove.airAcceleration = playerMove.airAccelerationMax;
     }
 
     public void WallHop()
@@ -92,7 +94,7 @@ public class PlayerWallHop : MonoBehaviour
             utils.IsFacingRight = false;
         }
         // lock into wall jump for a while after wall jumping to stop wall climbing
-        playerController.airAcceleration = playerController.airAccelerationMin;
+        playerMove.airAcceleration = playerMove.airAccelerationMin;
         StartCoroutine(WallHopLock());
     }
 }

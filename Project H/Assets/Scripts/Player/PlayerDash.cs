@@ -3,16 +3,18 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// Must implement playerController.IsMoving
-// Must implement playerController.moveInput
-// Relies on a Rigidbody2D, TouchingDirections (util package), PlayerUtils (util package)
+// Requires use of PlayerMove Util for player movement
+// Relies on a Rigidbody2D, TouchingDirections (util package), PlayerUtils (util package), PlayerController
 // Offers 2 dash coroutines, Dash() and downDash, also makes use of unity's input system with the OnDash() function that should be attached to the dash button event
 
+// Recommended to use in conjunction with PlayerMove Util, otherwise must make sure to disallow movement while dashing using the "_isDashing" bool
+
 [RequireComponent(typeof(Rigidbody2D), typeof(TouchingDirections), typeof(PlayerUtils))]
+[RequireComponent(typeof(PlayerMove))]
 public class PlayerDash : MonoBehaviour
 {
     [Header("Components")]
-    PlayerController playerController;
+    PlayerMove playerMove;
     TouchingDirections touchingDirections;
     Rigidbody2D rb;
     PlayerUtils utils;
@@ -35,7 +37,7 @@ public class PlayerDash : MonoBehaviour
 
     void Awake()
     {
-        playerController = GetComponent<PlayerController>();
+        playerMove = GetComponent<PlayerMove>();
         touchingDirections = GetComponent<TouchingDirections>();
         rb = GetComponent<Rigidbody2D>();
         utils = GetComponent<PlayerUtils>();
@@ -98,11 +100,11 @@ public class PlayerDash : MonoBehaviour
     {
         if (context.started && utils._canMove)
         {
-            if (_canDash && playerController.IsMoving && !touchingDirections.IsOnWall)
+            if (_canDash && playerMove.IsMoving && !touchingDirections.IsOnWall)
                 StartCoroutine(Dash());
-            else if (playerController.moveInput.y < 0 && _canDownDash && !playerController.IsMoving)
+            else if (playerMove.moveInput.y < 0 && _canDownDash && !playerMove.IsMoving)
                 StartCoroutine(downDash());
-            else if (_canDash && playerController.moveInput.y >= 0 && !touchingDirections.IsOnWall)
+            else if (_canDash && playerMove.moveInput.y >= 0 && !touchingDirections.IsOnWall)
                 StartCoroutine(Dash());
         }
     }
